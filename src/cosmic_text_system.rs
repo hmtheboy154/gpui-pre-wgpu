@@ -187,6 +187,23 @@ impl PlatformTextSystem for CosmicTextSystem {
         result
     }
 
+    /// The data of the font file `font_id` is, and its index in that file (a
+    /// collection holds several faces), for what needs the font itself and
+    /// not its shaped glyphs: a PDF's embedded fonts, and the pair kerning a
+    /// Word document's `w:kern` asks for.
+    ///
+    /// The face is read out of the font database cosmic-text keeps every
+    /// loaded font in, whichever way it was loaded (a file the system fonts
+    /// are read from, or bytes `add_fonts` was given).
+    fn font_data(&self, font_id: FontId) -> Option<(Arc<Vec<u8>>, u32)> {
+        let state = self.0.read();
+        let face_id = state.loaded_fonts.get(font_id.0)?.font.id();
+        state
+            .font_system
+            .db()
+            .with_face_data(face_id, |data, index| (Arc::new(data.to_vec()), index))
+    }
+
     fn font_id(&self, font: &Font) -> Result<FontId> {
         let mut state = self.0.write();
         let key = FontKey::new(
